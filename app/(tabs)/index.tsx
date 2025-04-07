@@ -19,16 +19,10 @@ export default function Home() {
   const zoomLevel = 20;
 
   useEffect(() => {
-    //for changing view based on angle
     const subscription = DeviceMotion.addListener((motion) => {
       const pitch = motion.rotation?.beta ?? 0;
       const threshold = Math.PI / 4;
-
-      if (Math.abs(pitch) < threshold) {
-        setIsARMode(false); // flat = map
-      } else {
-        setIsARMode(true); // upright = AR
-      }
+      setIsARMode(Math.abs(pitch) > threshold); // upright = AR
     });
 
     DeviceMotion.setUpdateInterval(500);
@@ -37,10 +31,21 @@ export default function Home() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={isARMode ? styles.hidden : styles.visible}>
+      {/* Mount both always — just control visibility */}
+      <View
+        style={[
+          styles.screen,
+          { display: isARMode ? "none" : "flex" }, // Map visible in flat mode
+        ]}
+      >
         <MapScreen centerCoordinate={cameraCenter} zoomLevel={zoomLevel} />
       </View>
-      <View style={isARMode ? styles.visible : styles.hidden}>
+      <View
+        style={[
+          styles.screen,
+          { display: isARMode ? "flex" : "none" }, // AR visible in upright
+        ]}
+      >
         <ARScreen />
       </View>
     </SafeAreaView>
@@ -48,7 +53,10 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  visible: { flex: 1 },
-  hidden: { flex: 0, height: 0, overflow: "hidden" },
+  container: {
+    flex: 1,
+  },
+  screen: {
+    flex: 1,
+  },
 });

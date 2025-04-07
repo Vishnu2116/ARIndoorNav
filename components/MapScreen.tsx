@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import MapboxGL from "@rnmapbox/maps";
 import * as Location from "expo-location";
@@ -15,11 +15,17 @@ const MapScreen = ({ centerCoordinate, zoomLevel }: MapScreenProps) => {
   const [currentLocation, setCurrentLocation] = useState<
     [number, number] | null
   >(null);
-  const [initialSet, setInitialSet] = useState(false);
+  const initialSet = useRef(false); // Use useRef to track the initial camera setup
 
   const coordinates = routeData.features[0].geometry.coordinates;
   const startPoint = coordinates[0];
   const endPoint = coordinates[coordinates.length - 1];
+
+  // Store the initial camera position and zoom
+  const cameraPosition = useRef({
+    centerCoordinate,
+    zoomLevel,
+  });
 
   useEffect(() => {
     let isMounted = true;
@@ -34,9 +40,9 @@ const MapScreen = ({ centerCoordinate, zoomLevel }: MapScreenProps) => {
 
       locationSub = await Location.watchPositionAsync(
         {
-          accuracy: Location.Accuracy.High,
+          accuracy: Location.Accuracy.Highest,
           distanceInterval: 1,
-          timeInterval: 1000,
+          timeInterval: 500,
         },
         (loc) => {
           if (isMounted) {
@@ -59,13 +65,16 @@ const MapScreen = ({ centerCoordinate, zoomLevel }: MapScreenProps) => {
   return (
     <View style={styles.container}>
       <MapboxGL.MapView style={styles.map} styleURL={MapboxGL.StyleURL.Light}>
-        {!initialSet && (
+        {/* Only apply the flyTo once on the first load */}
+        {!initialSet.current && (
           <MapboxGL.Camera
-            zoomLevel={zoomLevel}
-            centerCoordinate={centerCoordinate}
+            zoomLevel={cameraPosition.current.zoomLevel}
+            centerCoordinate={cameraPosition.current.centerCoordinate}
             animationMode="flyTo"
             animationDuration={1000}
-            onDidFinishLoading={() => setInitialSet(true)}
+            onDidFinishLoading={() => {
+              initialSet.current = true;
+            }}
           />
         )}
 
@@ -83,24 +92,19 @@ const MapScreen = ({ centerCoordinate, zoomLevel }: MapScreenProps) => {
           />
         </MapboxGL.ShapeSource>
 
-        {/* Start Point Marker */}
         <MapboxGL.PointAnnotation id="start" coordinate={startPoint}>
           <View style={styles.startMarker} />
         </MapboxGL.PointAnnotation>
 
-        {/* End/Destination Marker */}
         <MapboxGL.PointAnnotation id="end" coordinate={endPoint}>
           <View style={styles.endMarker} />
         </MapboxGL.PointAnnotation>
 
-        {/* Live User Location */}
-        {currentLocation &&
-          Array.isArray(currentLocation) &&
-          currentLocation.length === 2 && (
-            <MapboxGL.PointAnnotation id="user" coordinate={currentLocation}>
-              <View style={styles.userMarker} />
-            </MapboxGL.PointAnnotation>
-          )}
+        {currentLocation && (
+          <MapboxGL.PointAnnotation id="user" coordinate={currentLocation}>
+            <View style={styles.userMarker} />
+          </MapboxGL.PointAnnotation>
+        )}
       </MapboxGL.MapView>
     </View>
   );
