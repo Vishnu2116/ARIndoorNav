@@ -1,6 +1,10 @@
-import React, { useEffect, useState, useRef } from "react";
-import { StyleSheet, View, ActivityIndicator } from "react-native";
+import React, { useEffect, useState } from "react";
+import { StyleSheet, View } from "react-native";
 import MapboxGL from "@rnmapbox/maps";
+import * as Location from "expo-location";
+
+import floorplanData from "../assets/floorplan";
+import routeData from "../assets/route";
 
 interface MapScreenProps {
   centerCoordinate: [number, number];
@@ -8,64 +12,95 @@ interface MapScreenProps {
 }
 
 const MapScreen = ({ centerCoordinate, zoomLevel }: MapScreenProps) => {
-  const [floorplan, setFloorplan] = useState<any>(null);
-  const [route, setRoute] = useState<any>(null);
-  const cameraRef = useRef<MapboxGL.Camera>(null);
+  const [currentLocation, setCurrentLocation] = useState<
+    [number, number] | null
+  >(null);
+  const [initialSet, setInitialSet] = useState(false);
+
+  const coordinates = routeData.features[0].geometry.coordinates;
+  const startPoint = coordinates[0];
+  const endPoint = coordinates[coordinates.length - 1];
 
   useEffect(() => {
-    const loadGeoJSON = async () => {
-      try {
-        const floorplanRes = await fetch(
-          "http://192.168.29.107:8081/floorplan.geojson"
-        );
-        const routeRes = await fetch(
-          "http://192.168.29.107:8081/route.geojson"
-        );
+    let isMounted = true;
+    let locationSub: Location.LocationSubscription | null = null;
 
-        const floorplanData = await floorplanRes.json();
-        const routeData = await routeRes.json();
-
-        setFloorplan(floorplanData);
-        setRoute(routeData);
-      } catch (error) {
-        console.error("GeoJSON load error:", error);
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        console.warn("Permission to access location was denied");
+        return;
       }
+
+      locationSub = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.High,
+          distanceInterval: 1,
+          timeInterval: 1000,
+        },
+        (loc) => {
+          if (isMounted) {
+            const position: [number, number] = [
+              loc.coords.longitude,
+              loc.coords.latitude,
+            ];
+            setCurrentLocation(position);
+          }
+        }
+      );
+    })();
+
+    return () => {
+      isMounted = false;
+      if (locationSub) locationSub.remove();
     };
-
-    loadGeoJSON();
   }, []);
-
-  if (!floorplan || !route) {
-    return (
-      <View style={styles.loader}>
-        <ActivityIndicator size="large" color="blue" />
-      </View>
-    );
-  }
 
   return (
     <View style={styles.container}>
       <MapboxGL.MapView style={styles.map} styleURL={MapboxGL.StyleURL.Light}>
-        <MapboxGL.Camera
-          ref={cameraRef}
-          zoomLevel={zoomLevel}
-          centerCoordinate={centerCoordinate}
-          animationMode="flyTo"
-          animationDuration={0} // prevent zoom animation
-        />
-        <MapboxGL.ShapeSource id="floorplan" shape={floorplan}>
+        {!initialSet && (
+          <MapboxGL.Camera
+            zoomLevel={zoomLevel}
+            centerCoordinate={centerCoordinate}
+            animationMode="flyTo"
+            animationDuration={1000}
+            onDidFinishLoading={() => setInitialSet(true)}
+          />
+        )}
+
+        <MapboxGL.ShapeSource id="floorplan" shape={floorplanData}>
           <MapboxGL.FillLayer
             id="floor-fill"
             style={{ fillColor: "#2196F3", fillOpacity: 0.2 }}
           />
         </MapboxGL.ShapeSource>
 
-        <MapboxGL.ShapeSource id="route" shape={route}>
+        <MapboxGL.ShapeSource id="route" shape={routeData}>
           <MapboxGL.LineLayer
             id="route-line"
             style={{ lineColor: "red", lineWidth: 3 }}
           />
         </MapboxGL.ShapeSource>
+
+        {/* Start Point Marker */}
+        <MapboxGL.PointAnnotation id="start" coordinate={startPoint}>
+          <View style={styles.startMarker} />
+        </MapboxGL.PointAnnotation>
+
+        {/* End/Destination Marker */}
+        <MapboxGL.PointAnnotation id="end" coordinate={endPoint}>
+          <View style={styles.endMarker} />
+        </MapboxGL.PointAnnotation>
+
+        {/* Live User Location */}
+        {currentLocation &&
+          Array.isArray(currentLocation) &&
+          currentLocation.length === 2 && (
+            <MapboxGL.PointAnnotation id="user" coordinate={currentLocation}>
+              <View style={styles.userMarker} />
+            </MapboxGL.PointAnnotation>
+          )}
       </MapboxGL.MapView>
     </View>
   );
@@ -74,10 +109,25 @@ const MapScreen = ({ centerCoordinate, zoomLevel }: MapScreenProps) => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { flex: 1 },
-  loader: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+  startMarker: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "green",
+  },
+  endMarker: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "red",
+  },
+  userMarker: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "#4287f5",
+    borderColor: "#fff",
+    borderWidth: 2,
   },
 });
 

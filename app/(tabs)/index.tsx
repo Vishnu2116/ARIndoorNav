@@ -19,6 +19,7 @@ export default function Home() {
   const zoomLevel = 20;
 
   useEffect(() => {
+    //for changing view based on angle
     const subscription = DeviceMotion.addListener((motion) => {
       const pitch = motion.rotation?.beta ?? 0;
       const threshold = Math.PI / 4;

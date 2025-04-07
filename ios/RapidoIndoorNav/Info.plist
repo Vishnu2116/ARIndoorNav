@@ -22,6 +22,7 @@
     <string>1.0.0</string>
     <key>CFBundleSignature</key>
     <string>????</string>
+
     <key>CFBundleURLTypes</key>
     <array>
       <dict>
@@ -38,12 +39,14 @@
         </array>
       </dict>
     </array>
+
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>LSMinimumSystemVersion</key>
     <string>12.0</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
+
     <key>NSAppTransportSecurity</key>
     <dict>
       <key>NSAllowsArbitraryLoads</key>
@@ -51,12 +54,21 @@
       <key>NSAllowsLocalNetworking</key>
       <true/>
     </dict>
+
     <key>NSMotionUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your device motion</string>
+
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>We use your location to guide you indoors with AR navigation.</string>
+
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>We use your location to guide you indoors with AR navigation even when the app is active.</string>
+
     <key>NSUserActivityTypes</key>
     <array>
       <string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>
     </array>
+
     <key>UILaunchStoryboardName</key>
     <string>SplashScreen</string>
     <key>UIRequiredDeviceCapabilities</key>

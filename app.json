@@ -10,8 +10,13 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.RapidoIndoorNav"
+      "bundleIdentifier": "com.anonymous.RapidoIndoorNav",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app needs access to your location to guide you with AR navigation.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app always needs your location to guide you indoors using AR, even when active in the background."
+      }
     },
+
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
@@ -32,6 +37,12 @@
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow RapidoIndoorNav to use your location."
         }
       ]
     ],
